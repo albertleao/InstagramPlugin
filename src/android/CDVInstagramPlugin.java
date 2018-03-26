@@ -117,14 +117,34 @@ public class CDVInstagramPlugin extends CordovaPlugin {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-        	
-        	Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        	shareIntent.setType("image/*");
-        	shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
-        	shareIntent.putExtra(Intent.EXTRA_TEXT, captionString);
-        	shareIntent.setPackage("com.instagram.android");
-        	
-        	this.cordova.startActivityForResult((CordovaPlugin) this, Intent.createChooser(shareIntent, "Share to"), 12345);
+
+            if (Build.VERSION.SDK_INT < 24) {
+                // Handle the file uri with pre-nougat method
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("image/*");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.fromFile(file));
+                shareIntent.putExtra(Intent.EXTRA_TEXT, captionString);
+                shareIntent.setPackage("com.instagram.android");
+
+                this.cordova.startActivityForResult((CordovaPlugin) this, Intent.createChooser(shareIntent, "Share to"), 12345);
+            } else {
+                // Handle the file URI using Android NOUGAT file provider
+                FileProvider FileProvider = new FileProvider();
+
+                Uri photoURI = FileProvider.getUriForFile(
+                        this.cordova.getActivity().getApplicationContext(),
+                        this.cordova.getActivity().getPackageName() + ".provider",
+                        file);
+
+                Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                shareIntent.setType("image/*");
+                shareIntent.putExtra(Intent.EXTRA_STREAM, photoURI);
+                shareIntent.putExtra(Intent.EXTRA_TEXT, captionString);
+                shareIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                shareIntent.setPackage("com.instagram.android");
+
+                this.cordova.startActivityForResult((CordovaPlugin) this, Intent.createChooser(shareIntent, "Share to"), 12345);   
+            }
         	
         } else {
             this.cbContext.error("Expected one non-empty string argument.");
